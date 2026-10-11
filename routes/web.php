@@ -1,0 +1,55 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\OfficerController;
+use App\Models\ParkingSlot;
+use App\Models\Reservation;
+
+Route::get('/', function () {
+    $available_slots = ParkingSlot::where('status', 'Tersedia')->count();
+    return view('pages.dashboard', compact('available_slots'));
+})->name('dashboard');
+
+Route::get('/info', function () {
+    return view('pages.info');
+})->name('info');
+
+Route::get('/pembayaran', function () {
+    return view('pages.pembayaran');
+})->name('pembayaran');
+
+Route::get('/status', function () {
+    $reservations = Reservation::with('parkingSlot')->latest()->get();
+    return view('pages.status', compact('reservations'));
+})->name('status');
+
+Route::get('/denda', function () {
+    return view('pages.denda');
+})->name('denda');
+
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::get('/register', function () {
+    return view('auth.register');
+})->name('register');
+
+Route::get('/reservasi', [ReservationController::class, 'index'])->name('reservasi.form');
+Route::post('/reservasi/proses', [ReservationController::class, 'proses'])->name('reservasi.proses');
+
+Route::get('/data-parkir', function () {
+    if (session('role') === 'officer') {
+        return redirect()->route('officer.list_parking');
+    }
+    return redirect()->route('login')->with('error', 'Halaman data parkir hanya dapat diakses setelah login sebagai petugas.');
+})->name('data-parkir');
+
+Route::prefix('officer')->group(function () {
+    Route::get('/', [OfficerController::class, 'index'])->name('officer.index');
+    Route::get('/list_parking', [OfficerController::class, 'listParking'])->name('officer.list_parking');
+    Route::get('/check_user', [OfficerController::class, 'checkUser'])->name('officer.check_user');
+    Route::match(['get', 'post'], '/penalty', [OfficerController::class, 'penalty'])->name('officer.penalty');
+});
